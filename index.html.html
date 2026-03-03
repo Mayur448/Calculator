@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CALC</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111;
+    --border: #1e1e1e;
+    --accent: #c8f000;
+    --accent-dim: #8aa800;
+    --text: #e8e8e8;
+    --text-dim: #555;
+    --btn-bg: #161616;
+    --btn-hover: #1f1f1f;
+    --btn-active: #2a2a2a;
+    --op-bg: #1a1a0a;
+    --op-hover: #252510;
+    --eq-bg: #c8f000;
+    --eq-text: #0a0a0a;
+    --shadow: 0 0 40px rgba(200,240,0,0.05);
+  }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px);
+    pointer-events: none;
+  }
+
+  .wrapper {
+    position: relative;
+  }
+
+  .label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-left: 2px;
+  }
+
+  .calc {
+    width: 320px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: var(--shadow), 0 40px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  /* Display */
+  .display {
+    background: #0d0d0d;
+    padding: 24px 20px 18px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .display::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+    opacity: 0.4;
+  }
+
+  .history {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+    min-height: 18px;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .main-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    color: var(--text);
+    text-align: right;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    transition: font-size 0.1s;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .main-display.small { font-size: 36px; }
+  .main-display.xsmall { font-size: 26px; }
+
+  .cursor {
+    display: inline-block;
+    width: 3px;
+    height: 0.8em;
+    background: var(--accent);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* Buttons */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  button {
+    all: unset;
+    background: var(--btn-bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.08s, color 0.08s, transform 0.06s;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  button:active::after { opacity: 0.04; }
+  button:active { transform: scale(0.96); }
+
+  button:hover { background: var(--btn-hover); }
+  button:active { background: var(--btn-active); }
+
+  /* Operator buttons */
+  button.op {
+    background: var(--op-bg);
+    color: var(--accent);
+    font-size: 18px;
+  }
+  button.op:hover { background: var(--op-hover); }
+
+  /* Equals */
+  button.eq {
+    background: var(--eq-bg);
+    color: var(--eq-text);
+    font-size: 22px;
+    font-weight: bold;
+  }
+  button.eq:hover { background: #d4f520; }
+  button.eq:active { background: #b8dc00; transform: scale(0.95); }
+
+  /* Clear / special */
+  button.clear {
+    color: #ff5a5a;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+  }
+
+  button.span2 {
+    grid-column: span 2;
+  }
+
+  /* Flash animation on equals */
+  @keyframes flash {
+    0% { background: rgba(200,240,0,0.15); }
+    100% { background: transparent; }
+  }
+
+  .display.flash { animation: flash 0.25s ease-out; }
+
+  /* Error state */
+  .main-display.error { color: #ff5a5a; font-size: 32px; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="label">// CALCULATOR_v1.0</div>
+  <div class="calc">
+    <div class="display" id="display">
+      <div class="history" id="history">&nbsp;</div>
+      <div class="main-display" id="mainDisplay">0<span class="cursor"></span></div>
+    </div>
+    <div class="buttons">
+      <button class="clear" onclick="clearAll()">AC</button>
+      <button class="op" onclick="toggleSign()">+/−</button>
+      <button class="op" onclick="percentage()">%</button>
+      <button class="op" onclick="setOp('/')">÷</button>
+
+      <button onclick="input('7')">7</button>
+      <button onclick="input('8')">8</button>
+      <button onclick="input('9')">9</button>
+      <button class="op" onclick="setOp('*')">×</button>
+
+      <button onclick="input('4')">4</button>
+      <button onclick="input('5')">5</button>
+      <button onclick="input('6')">6</button>
+      <button class="op" onclick="setOp('-')">−</button>
+
+      <button onclick="input('1')">1</button>
+      <button onclick="input('2')">2</button>
+      <button onclick="input('3')">3</button>
+      <button class="op" onclick="setOp('+')">+</button>
+
+      <button class="span2" onclick="input('0')">0</button>
+      <button onclick="inputDot()">.</button>
+      <button class="eq" onclick="calculate()">=</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let current = '0';
+  let operator = null;
+  let previous = null;
+  let waitingForSecond = false;
+  let historyStr = '';
+  let justCalculated = false;
+
+  const mainDisplay = document.getElementById('mainDisplay');
+  const historyEl = document.getElementById('history');
+  const display = document.getElementById('display');
+
+  function updateDisplay() {
+    const len = current.length;
+    mainDisplay.className = 'main-display';
+    if (len > 12) mainDisplay.classList.add('xsmall');
+    else if (len > 8) mainDisplay.classList.add('small');
+
+    // cursor stays at end
+    mainDisplay.innerHTML = current + '<span class="cursor"></span>';
+  }
+
+  function input(digit) {
+    if (justCalculated) {
+      current = digit;
+      justCalculated = false;
+    } else if (waitingForSecond) {
+      current = digit;
+      waitingForSecond = false;
+    } else {
+      if (current === '0' && digit !== '.') current = digit;
+      else if (current.length < 15) current += digit;
+    }
+    updateDisplay();
+  }
+
+  function inputDot() {
+    if (justCalculated) { current = '0.'; justCalculated = false; updateDisplay(); return; }
+    if (waitingForSecond) { current = '0.'; waitingForSecond = false; updateDisplay(); return; }
+    if (!current.includes('.')) current += '.';
+    updateDisplay();
+  }
+
+  function setOp(op) {
+    justCalculated = false;
+    if (operator && !waitingForSecond) {
+      calculate(true);
+    }
+    previous = parseFloat(current);
+    operator = op;
+    waitingForSecond = true;
+    const opDisplay = { '+': '+', '-': '−', '*': '×', '/': '÷' }[op];
+    historyStr = previous + ' ' + opDisplay;
+    historyEl.textContent = historyStr;
+  }
+
+  function calculate(chained = false) {
+    if (operator === null || previous === null) return;
+    const a = previous;
+    const b = parseFloat(current);
+    const opDisplay = { '+': '+', '-': '−', '*': '×', '/': '÷' }[operator];
+    let result;
+
+    if (operator === '/' && b === 0) {
+      mainDisplay.classList.add('error');
+      mainDisplay.innerHTML = 'ERR: DIV/0';
+      historyEl.textContent = a + ' ' + opDisplay + ' ' + b + ' =';
+      current = '0'; operator = null; previous = null; waitingForSecond = false;
+      return;
+    }
+
+    switch(operator) {
+      case '+': result = a + b; break;
+      case '-': result = a - b; break;
+      case '*': result = a * b; break;
+      case '/': result = a / b; break;
+    }
+
+    // Floating point cleanup
+    result = parseFloat(result.toPrecision(12));
+
+    if (!chained) {
+      historyEl.textContent = a + ' ' + opDisplay + ' ' + b + ' =';
+      flashDisplay();
+      justCalculated = true;
+    }
+
+    current = String(result);
+    if (!chained) { operator = null; previous = null; waitingForSecond = false; }
+    updateDisplay();
+  }
+
+  function clearAll() {
+    current = '0';
+    operator = null;
+    previous = null;
+    waitingForSecond = false;
+    historyStr = '';
+    justCalculated = false;
+    historyEl.innerHTML = '&nbsp;';
+    mainDisplay.className = 'main-display';
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    if (current !== '0') {
+      current = current.startsWith('-') ? current.slice(1) : '-' + current;
+      updateDisplay();
+    }
+  }
+
+  function percentage() {
+    current = String(parseFloat(current) / 100);
+    updateDisplay();
+  }
+
+  function flashDisplay() {
+    display.classList.remove('flash');
+    void display.offsetWidth;
+    display.classList.add('flash');
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') input(e.key);
+    else if (e.key === '.') inputDot();
+    else if (e.key === '+') setOp('+');
+    else if (e.key === '-') setOp('-');
+    else if (e.key === '*') setOp('*');
+    else if (e.key === '/') { e.preventDefault(); setOp('/'); }
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === 'Backspace') {
+      if (current.length > 1) current = current.slice(0, -1);
+      else current = '0';
+      updateDisplay();
+    }
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>
